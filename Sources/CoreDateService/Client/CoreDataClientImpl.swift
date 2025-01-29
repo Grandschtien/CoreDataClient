@@ -1,17 +1,5 @@
-// The Swift Programming Language
-// https://docs.swift.org/swift-book
-
 import Foundation
 import CoreData
-
-protocol CoreDataClient<Item> {
-    associatedtype Item: ItemConvertable
-    func saveAll(items: [Item])
-    func getItems() -> [Item]
-    func getItem() -> Item
-    func save(item: Item)
-    func clearDatabase()
-}
 
 final class CoreDataClientImpl<
     Item: ItemConvertable,
@@ -57,13 +45,20 @@ final class CoreDataClientImpl<
         }
     }
     
-    func getItems() -> [Item] {
+    func getItems(
+        predicate: NSPredicate?,
+        configuration: FetchRequestConfiguration?
+    ) -> [Item] {
         var items: [Item] = []
 
         context.performAndWait {
-            let fetchRequest = CDModel.fetchRequest()
+            guard let fetchRequest = makeFetchRequest(
+                with: predicate,
+                configuration: configuration
+            ) else { return }
+
             do {
-                let result = try context.fetch(fetchRequest).compactMap { $0 as? CDModel }
+                let result = try context.fetch(fetchRequest)
                 debugPrint("[INFO] successfully retrieved \(result.count) records")
                 items = result.map {
                     mapper.convert(from: $0)
@@ -76,6 +71,33 @@ final class CoreDataClientImpl<
         }
 
         return items
+    }
+    
+    private func makeFetchRequest(
+        with predicate: NSPredicate?,
+        configuration: FetchRequestConfiguration?
+    ) -> NSFetchRequest<CDModel>? {
+        guard let fetchRequest = CDModel.fetchRequest() as? NSFetchRequest<CDModel> else {
+            assertionFailure("Cannot cast fetch request of type \(CDModel.self)")
+            return nil
+        }
+
+        fetchRequest.predicate = predicate
+        
+        guard let configuration else { return fetchRequest }
+        
+        let builder = FetchRequestBuilder(fetchRequst: fetchRequest)
+        
+        builder.add(sortDescriptors: configuration.sortDescriptors)
+        builder.add(fetchLimit: configuration.fetchLimit)
+        builder.add(resultType: configuration.resultType)
+        builder.add(returnsObjectsAsFaults: configuration.returnsObjectsAsFaults)
+        builder.add(
+            relationshipKeyPathsForPrefetching: configuration.relationshipKeyPathsForPrefetching
+        )
+        builder.add(fetchBatchSize: configuration.fetchBatchSize)
+
+        return builder.build()
     }
     
     func clearDatabase() {
@@ -95,13 +117,5 @@ final class CoreDataClientImpl<
                 debugPrint("[ERROR] Resetting databaes failed")
             }
         }
-    }
-
-    func getItem() -> Item {
-        fatalError()
-    }
-    
-    func save(item: Item) {
-        fatalError()
     }
 }
