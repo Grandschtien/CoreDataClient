@@ -8,15 +8,16 @@
 import Foundation
 import CoreData
 
-public final class CoreDataFactory {
-    func buildClient<
-        Mapper: CDMapper,
-        CDModel: NSManagedObject,
-        Item: ItemConvertable
-    >(
+public final class CoreDataFactory<
+    Mapper: CDMapper,
+    CDModel: NSManagedObject,
+    Item: ItemConvertable
+> {
+    public init() { }
+    public func buildClient(
         modelName: String,
         mapper: Mapper
-    ) -> any CoreDataClient where Item.CDModel == CDModel, Mapper.Item == Item, Mapper.CDModel == CDModel {
+    ) -> any CoreDataClient<Item> where Item.CDModel == CDModel, Mapper.Item == Item, Mapper.CDModel == CDModel {
         return CoreDataClientImpl<Item, CDModel, Mapper>(
             modelName: modelName,
             mapper: mapper

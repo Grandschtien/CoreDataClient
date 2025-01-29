@@ -50,13 +50,13 @@ final class CoreDataClientImpl<
         configuration: FetchRequestConfiguration?
     ) -> [Item] {
         var items: [Item] = []
-
+        
         context.performAndWait {
             guard let fetchRequest = makeFetchRequest(
                 with: predicate,
                 configuration: configuration
             ) else { return }
-
+            
             do {
                 let result = try context.fetch(fetchRequest)
                 debugPrint("[INFO] successfully retrieved \(result.count) records")
@@ -69,11 +69,33 @@ final class CoreDataClientImpl<
             }
             
         }
-
+        
         return items
     }
-    
-    private func makeFetchRequest(
+
+    func clearDatabase() {
+        persistentContainer.performBackgroundTask { context in
+            let fetchRequest = CDModel.fetchRequest()
+
+            do {
+                let objects = try context.fetch(fetchRequest).compactMap { $0 as? CDModel }
+        
+                for object in objects {
+                    context.delete(object)
+                }
+                try context.save()
+                debugPrint("[INFO] Database cleared successfully")
+            } catch {
+                context.rollback()
+                debugPrint("[ERROR] Resetting databaes failed")
+            }
+        }
+    }
+}
+
+// MARK: - Private
+private extension CoreDataClientImpl {
+    func makeFetchRequest(
         with predicate: NSPredicate?,
         configuration: FetchRequestConfiguration?
     ) -> NSFetchRequest<CDModel>? {
@@ -100,22 +122,4 @@ final class CoreDataClientImpl<
         return builder.build()
     }
     
-    func clearDatabase() {
-        persistentContainer.performBackgroundTask { context in
-            let fetchRequest = CDModel.fetchRequest()
-
-            do {
-                let objects = try context.fetch(fetchRequest).compactMap { $0 as? CDModel }
-        
-                for object in objects {
-                    context.delete(object)
-                }
-                try context.save()
-                debugPrint("[INFO] Database cleared successfully")
-            } catch {
-                context.rollback()
-                debugPrint("[ERROR] Resetting databaes failed")
-            }
-        }
-    }
 }
