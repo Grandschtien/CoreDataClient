@@ -11,14 +11,14 @@ let package = Package(
     products: [
         .library(
             name: "CoreDataClient",
-            targets: ["CoreDateService"]),
+            targets: ["CoreDataClient"]),
     ],
     targets: [
         .target(
-            name: "CoreDateService"),
+            name: "CoreDataClient"),
         .testTarget(
-            name: "CoreDateServiceTests",
-            dependencies: ["CoreDateService"]
+            name: "CoreDataClientTests",
+            dependencies: ["CoreDataClient"]
         ),
     ]
 )
