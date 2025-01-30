@@ -10,15 +10,26 @@ import CoreData
 
 public protocol CoreDataClient<Item> {
     associatedtype Item: ItemConvertable
-
-    func saveAll(items: [Item])
-
+    
+    func saveAll(
+        items: [Item],
+        completion: ((Error?) -> Void)?
+    )
+    
     func getItems(
         predicate: NSPredicate?,
         configuration: FetchRequestConfiguration?
     ) -> [Item]
-
-    func clearDatabase()
+    
+//    func deleteItems(
+//        predicate: NSPredicate,
+//        completion: @escaping (Error?) -> Void
+//    )
+//    
+//    func updateItems(
+//        predicate: NSPredicate,
+//        completion: @escaping (Error?) -> Void
+//    )
 }
 
 public extension CoreDataClient {
@@ -26,8 +37,13 @@ public extension CoreDataClient {
         let configuration = FetchRequestConfiguration(fetchLimit: 1)
         return getItems(predicate: nil, configuration: configuration).first
     }
-
-    func save(item: Item) {
-        saveAll(items: [item])
+    
+    func getItem(with predicate: NSPredicate? = nil) -> Item? {
+        let configuration = FetchRequestConfiguration(fetchLimit: 1)
+        return getItems(predicate: predicate, configuration: configuration).first
+    }
+    
+    func save(item: Item, completion: ((Error?) -> Void)?) {
+        saveAll(items: [item], completion: completion)
     }
 }
