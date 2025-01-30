@@ -14,13 +14,24 @@ public final class CoreDataFactory<
     Item: ItemConvertable
 > {
     public init() { }
+
     public func buildClient(
         modelName: String,
         mapper: Mapper
     ) -> any CoreDataClient<Item> where Item.CDModel == CDModel, Mapper.Item == Item, Mapper.CDModel == CDModel {
         return CoreDataClientImpl<Item, CDModel, Mapper>(
-            modelName: modelName,
-            mapper: mapper
+            mapper: mapper,
+            modelName: modelName
+        )
+    }
+    
+    public func buildClient(
+        persistantContainer: NSPersistentContainer,
+        mapper: Mapper
+    ) -> any CoreDataClient<Item> where Item.CDModel == CDModel, Mapper.Item == Item, Mapper.CDModel == CDModel {
+        return CoreDataClientImpl<Item, CDModel, Mapper>(
+            mapper: mapper,
+            persistentContainer: persistantContainer
         )
     }
 }

@@ -9,9 +9,23 @@ final class CoreDataClientImpl<
     private let persistentContainer: NSPersistentContainer
     private let mapper: Mapper
     
-    init(
-        modelName: String,
-        mapper: Mapper
+    public init(
+        mapper: Mapper,
+        persistentContainer: NSPersistentContainer
+    ) {
+        self.mapper = mapper
+        self.persistentContainer = persistentContainer
+        
+        persistentContainer.loadPersistentStores { description, error in
+            if let error = error {
+                fatalError("Failed to load Core Data stack: \(error)")
+            }
+        }
+    }
+    
+    public init(
+        mapper: Mapper,
+        modelName: String
     ) {
         self.mapper = mapper
         self.persistentContainer = NSPersistentContainer(name: modelName)
