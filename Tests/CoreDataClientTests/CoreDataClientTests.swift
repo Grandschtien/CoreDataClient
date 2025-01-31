@@ -85,28 +85,130 @@ final class CoreDateServiceTests: XCTestCase {
         XCTAssertEqual(testData, items.sorted(by: { $0.id < $1.id }))
     }
     
-    func test_clear_database() throws {
+    func test_delete_all() throws {
+        // Given
+        let expectation = XCTestExpectation(description: "Background task completed")
+        let context = inMemoryPersistentContainer.viewContext
+        
+        for item in testData {
+            let cdTestItem = CDTestEntity(context: context)
+            cdTestItem.id = item.id
+        }
+        
+        try context.save()
+        
+        // when
+        sut.deleteAll { _ in
+            expectation.fulfill()
+        }
+        
+        wait(for: [expectation], timeout: 1)
+        
+        // Then
+        let request = CDTestEntity.fetchRequest()
 
+        let items = try context.fetch(request).map { TestItem(cdModel: $0) }
+        
+        XCTAssertTrue(items.isEmpty)
     }
     
     func test_get_item() throws {
+        // Given
+        let context = inMemoryPersistentContainer.viewContext
+        let testItem = TestItem(id: 1)
+
+        let cdTestItem = CDTestEntity(context: context)
+        cdTestItem.id = testItem.id
         
+        try context.save()
+        
+        // When
+        let predicate = NSPredicate(format: "id == %d", testItem.id)
+        let item = sut.getItem(with: predicate)
+        
+        // Then
+        XCTAssertEqual(testData.first, item)
     }
     
     func test_save_item() throws {
+        // Given
+        let expectation = XCTestExpectation(description: "Background task completed")
+        let context = inMemoryPersistentContainer.viewContext
+        let expectedItem = TestItem(id: 1)
+
+        // When
+        sut.save(item: expectedItem) { _ in
+            expectation.fulfill()
+        }
         
+        wait(for: [expectation], timeout: 1)
+        
+        // Then
+        
+        let request = CDTestEntity.fetchRequest()
+
+        let fetchedItem = try context.fetch(request).map { TestItem(cdModel: $0) }.first
+        
+        XCTAssertEqual(expectedItem, fetchedItem)
     }
     
     func test_delete_item() throws {
+        // Given
+        let expectation = XCTestExpectation(description: "Background task completed")
+        let context = inMemoryPersistentContainer.viewContext
         
-    }
-    
-    func test_delete_items() throws {
+        for item in testData {
+            let cdTestItem = CDTestEntity(context: context)
+            cdTestItem.id = item.id
+        }
         
+        try context.save()
+        
+        // When
+        let predicate = NSPredicate(format: "id == %d", 1)
+        sut.deleteItems(via: predicate) { _ in
+            expectation.fulfill()
+        }
+        
+        wait(for: [expectation], timeout: 1)
+        
+        // Then
+        let request = CDTestEntity.fetchRequest()
+
+        let fetchedItems = try context.fetch(request).map { TestItem(cdModel: $0) }
+        
+        XCTAssertFalse(fetchedItems.contains(where: { $0.id == 1}))
     }
     
     func test_update_item() throws {
+        // Given
+        let expectation = XCTestExpectation(description: "Background task completed")
+        let context = inMemoryPersistentContainer.viewContext
+        let testItem = TestItem(id: 1)
+
+        let cdTestItem = CDTestEntity(context: context)
+        cdTestItem.id = testItem.id
         
+        try context.save()
+        
+        // When
+        let predicate = NSPredicate(format: "id == %d", 1)
+
+        sut.updateItem(predicate: predicate) { model in
+            model.id = 2
+        } completion: { _ in
+            expectation.fulfill()
+        }
+        
+        wait(for: [expectation], timeout: 1)
+
+        // Then
+        let request = CDTestEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %d", 2)
+
+        let fetchedItem = try context.fetch(request).map { TestItem(cdModel: $0) }.first!
+        
+        XCTAssertTrue(fetchedItem.id == 2)
     }
 }
 

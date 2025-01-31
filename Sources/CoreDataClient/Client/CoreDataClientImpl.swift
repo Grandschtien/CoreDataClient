@@ -84,79 +84,82 @@ extension CoreDataClientImpl: CoreDataClient where Item.CDModel == CDModel, Mapp
                 context.rollback()
                 debugPrint("[ERROR] Fetching faild with error: \(error.localizedDescription)")
             }
-            
         }
         
         return items
     }
 
-//    func deleteItems(
-//        predicate: NSPredicate,
-//        completion: @escaping ((any Error)?) -> Void
-//    ) {
-//        let fetchRequest = CDModel.fetchRequest()
-//        fetchRequest.predicate = predicate
-//        
-//        do {
-//            let objects = try context.fetch(fetchRequest).compactMap { $0 as? CDModel }
-//            
-//            for object in objects {
-//                context.delete(object)
-//            }
-//            try context.save()
-//            completion(nil)
-//            debugPrint("[INFO] Database cleared successfully")
-//        } catch {
-//            context.rollback()
-//            completion(error)
-//            debugPrint("[ERROR] Resetting databaes failed")
-//        }
-//    }
+    func deleteItems(
+        via predicate: NSPredicate,
+        completion: @escaping ((any Error)?) -> Void
+    ) {
+        persistentContainer.performBackgroundTask { context in
+            let fetchRequest = CDModel.fetchRequest()
+            fetchRequest.predicate = predicate
+            
+            do {
+                let objects = try context.fetch(fetchRequest).compactMap { $0 as? CDModel }
+                
+                objects.forEach {
+                    context.delete($0)
+                }
+                
+                try context.save()
+                completion(nil)
+                debugPrint("[INFO] Database cleared successfully")
+            } catch {
+                context.rollback()
+                completion(error)
+                debugPrint("[ERROR] Resetting databaes failed")
+            }
+        }
+    }
     
-//    func updateItems(
-//        predicate: NSPredicate,
-//        completion: @escaping ((any Error)?) -> Void
-//    ) {
-//        let fetchRequest = CDModel.fetchRequest()
-//        fetchRequest.predicate = predicate
-//        
-//        do {
-//            let objects = try context.fetch(fetchRequest).compactMap { $0 as? CDModel }
-//            
-//            for object in objects {
-//                context.delete(object)
-//            }
-//            try context.save()
-//            completion(nil)
-//            debugPrint("[INFO] Database cleared successfully")
-//        } catch {
-//            context.rollback()
-//            completion(error)
-//            debugPrint("[ERROR] Resetting databaes failed")
-//        }
-//    }
+    func updateItem(
+        predicate: NSPredicate,
+        updateBlock: @escaping (CDModel) -> Void,
+        completion: @escaping ((any Error)?) -> Void
+    ) {
+        persistentContainer.performBackgroundTask { context in
+            let fetchRequest = CDModel.fetchRequest()
+            do {
+                let objects = try context.fetch(fetchRequest).compactMap { $0 as? CDModel }
+                
+                if let object = objects.first {
+                    updateBlock(object)
+                }
+                
+                try context.save()
+                completion(nil)
+                debugPrint("[INFO] Database cleared successfully")
+            } catch {
+                context.rollback()
+                completion(error)
+                debugPrint("[ERROR] Resetting databaes failed")
+            }
+        }
+    }
     
-//
-//    func clearDatabase(completion: @escaping (Error?) -> Void) {
-//        persistentContainer.performBackgroundTask { context in
-//            let fetchRequest = CDModel.fetchRequest()
-//
-//            do {
-//                let objects = try context.fetch(fetchRequest).compactMap { $0 as? CDModel }
-//        
-//                for object in objects {
-//                    context.delete(object)
-//                }
-//                try context.save()
-//                completion(nil)
-//                debugPrint("[INFO] Database cleared successfully")
-//            } catch {
-//                context.rollback()
-//                completion(error)
-//                debugPrint("[ERROR] Resetting databaes failed")
-//            }
-//        }
-//    }
+    func deleteAll(completion: @escaping ((any Error)?) -> Void) {
+        persistentContainer.performBackgroundTask { context in
+            let fetchRequest = CDModel.fetchRequest()
+            
+            do {
+                let objects = try context.fetch(fetchRequest).compactMap { $0 as? CDModel }
+                
+                for object in objects {
+                    context.delete(object)
+                }
+                try context.save()
+                completion(nil)
+                debugPrint("[INFO] Database cleared successfully")
+            } catch {
+                context.rollback()
+                completion(error)
+                debugPrint("[ERROR] Resetting databaes failed")
+            }
+        }
+    }
 }
 
 // MARK: - Private

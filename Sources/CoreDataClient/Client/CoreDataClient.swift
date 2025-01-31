@@ -10,7 +10,8 @@ import CoreData
 
 public protocol CoreDataClient<Item> {
     associatedtype Item: ItemConvertable
-    
+    associatedtype CDModel: NSManagedObject where Item.CDModel == CDModel
+
     func saveAll(
         items: [Item],
         completion: ((Error?) -> Void)?
@@ -21,15 +22,18 @@ public protocol CoreDataClient<Item> {
         configuration: FetchRequestConfiguration?
     ) -> [Item]
     
-//    func deleteItems(
-//        predicate: NSPredicate,
-//        completion: @escaping (Error?) -> Void
-//    )
-//    
-//    func updateItems(
-//        predicate: NSPredicate,
-//        completion: @escaping (Error?) -> Void
-//    )
+    func deleteItems(
+        via predicate: NSPredicate,
+        completion: @escaping ((any Error)?) -> Void
+    )
+    
+    func deleteAll(completion: @escaping (Error?) -> Void)
+
+    func updateItem(
+        predicate: NSPredicate,
+        updateBlock: @escaping (CDModel) -> Void,
+        completion: @escaping (Error?) -> Void
+    )
 }
 
 public extension CoreDataClient {
