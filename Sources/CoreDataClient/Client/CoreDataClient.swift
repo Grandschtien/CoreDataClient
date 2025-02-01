@@ -24,24 +24,28 @@ public protocol CoreDataClient<Item> {
     
     func deleteItems(
         via predicate: NSPredicate,
-        completion: @escaping ((any Error)?) -> Void
+        completion: ((Error?) -> Void)?
     )
     
-    func deleteAll(completion: @escaping (Error?) -> Void)
+    func deleteAll(completion: ((Error?) -> Void)?)
 
     func updateItem(
         predicate: NSPredicate,
         updateBlock: @escaping (CDModel) -> Void,
-        completion: @escaping (Error?) -> Void
+        completion: ((Error?) -> Void)?
     )
+    
+    func refreshViewContext()
 }
 
 public extension CoreDataClient {
+    /// Method returns first item from selection
     func getItem() -> Item? {
         let configuration = FetchRequestConfiguration(fetchLimit: 1)
         return getItems(predicate: nil, configuration: configuration).first
     }
     
+    /// Method returns first item from selection according to given predicate
     func getItem(with predicate: NSPredicate? = nil) -> Item? {
         let configuration = FetchRequestConfiguration(fetchLimit: 1)
         return getItems(predicate: predicate, configuration: configuration).first

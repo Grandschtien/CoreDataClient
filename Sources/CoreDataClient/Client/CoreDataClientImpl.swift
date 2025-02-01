@@ -91,7 +91,7 @@ extension CoreDataClientImpl: CoreDataClient where Item.CDModel == CDModel, Mapp
 
     func deleteItems(
         via predicate: NSPredicate,
-        completion: @escaping ((any Error)?) -> Void
+        completion: ((Error?) -> Void)?
     ) {
         persistentContainer.performBackgroundTask { context in
             let fetchRequest = CDModel.fetchRequest()
@@ -105,12 +105,12 @@ extension CoreDataClientImpl: CoreDataClient where Item.CDModel == CDModel, Mapp
                 }
                 
                 try context.save()
-                completion(nil)
-                debugPrint("[INFO] Database cleared successfully")
+                completion?(nil)
+                debugPrint("[INFO] Droped all item via predicate: \(predicate.predicateFormat)")
             } catch {
                 context.rollback()
-                completion(error)
-                debugPrint("[ERROR] Resetting databaes failed")
+                completion?(error)
+                debugPrint("[ERROR] Dropping items failed for predicate: \(predicate.predicateFormat)")
             }
         }
     }
@@ -118,7 +118,7 @@ extension CoreDataClientImpl: CoreDataClient where Item.CDModel == CDModel, Mapp
     func updateItem(
         predicate: NSPredicate,
         updateBlock: @escaping (CDModel) -> Void,
-        completion: @escaping ((any Error)?) -> Void
+        completion: ((Error?) -> Void)?
     ) {
         persistentContainer.performBackgroundTask { context in
             let fetchRequest = CDModel.fetchRequest()
@@ -130,17 +130,17 @@ extension CoreDataClientImpl: CoreDataClient where Item.CDModel == CDModel, Mapp
                 }
                 
                 try context.save()
-                completion(nil)
-                debugPrint("[INFO] Database cleared successfully")
+                completion?(nil)
+                debugPrint("[INFO] Item updated")
             } catch {
                 context.rollback()
-                completion(error)
-                debugPrint("[ERROR] Resetting databaes failed")
+                completion?(error)
+                debugPrint("[ERROR] Item update failed")
             }
         }
     }
     
-    func deleteAll(completion: @escaping ((any Error)?) -> Void) {
+    func deleteAll(completion: ((Error?) -> Void)?) {
         persistentContainer.performBackgroundTask { context in
             let fetchRequest = CDModel.fetchRequest()
             
@@ -151,13 +151,73 @@ extension CoreDataClientImpl: CoreDataClient where Item.CDModel == CDModel, Mapp
                     context.delete(object)
                 }
                 try context.save()
-                completion(nil)
+                completion?(nil)
                 debugPrint("[INFO] Database cleared successfully")
             } catch {
                 context.rollback()
-                completion(error)
+                completion?(error)
                 debugPrint("[ERROR] Resetting databaes failed")
             }
+        }
+    }
+}
+
+// MARK: - AsyncCoreDataClient
+extension CoreDataClientImpl: AsyncCoreDataClient where Item.CDModel == CDModel, Mapper.Item == Item, Mapper.CDModel == CDModel {
+    func saveAll(items: [Item]) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            saveAll(items: items) { error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+
+    func deleteItems(via predicate: NSPredicate) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            deleteItems(via: predicate) { error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+    
+    func deleteAll() async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            deleteAll { error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+    
+    func updateItem(
+        predicate: NSPredicate,
+        updateBlock: @escaping (CDModel) -> Void
+    ) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            updateItem(predicate: predicate, updateBlock: updateBlock) { error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+    
+    func refreshViewContext() {
+        context.performAndWait {
+            context.refreshAllObjects()
         }
     }
 }

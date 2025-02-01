@@ -8,6 +8,8 @@
 import Foundation
 import CoreData
 
+typealias Client = CoreDataClient & AsyncCoreDataClient
+
 public final class CoreDataFactory<
     Mapper: CDMapper,
     CDModel: NSManagedObject,
